@@ -1,8 +1,21 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus } = require('@discordjs/voice');
+const { joinVoiceChannel } = require('@discordjs/voice');
+const express = require('express');
 require('dotenv').config();
 
-// สร้าง Client ของบอทพร้อมกำหนด Intent ที่จำเป็น
+// 1. ระบบ Express Web Server (ป้องกัน Render เข้าสู่ Sleep Mode จาก UptimeRobot)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+    res.send('Bot is running 24/7!');
+});
+
+app.listen(PORT, () => {
+    console.log(`Web Server running on port ${PORT}`);
+});
+
+// 2. ระบบ Discord Bot Client
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -12,12 +25,12 @@ const client = new Client({
     ]
 });
 
-// กำหนดค่า ID ของ Server และห้องเสียง (Voice Channel) ที่ต้องการให้บอทเข้า
+// กำหนด ID ของเซิร์ฟเวอร์ และ ID ของห้องเสียงที่ต้องการให้บอทเข้า
 const GUILD_ID = '1501926557252321390';
 const VOICE_CHANNEL_ID = '1502538574632058932';
 
 client.once('ready', async () => {
-    console.log(`Logged in as ${client.user.tag}!`);
+    console.log(`ล็อกอินเข้าสู่ระบบในชื่อ ${client.user.tag} เรียบร้อยแล้ว!`);
 
     try {
         const guild = await client.guilds.fetch(GUILD_ID);
@@ -28,7 +41,7 @@ client.once('ready', async () => {
 
         const channel = await guild.channels.fetch(VOICE_CHANNEL_ID);
         if (!channel || !channel.isVoiceBased()) {
-            console.error('ไม่พบห้องเสียงที่ระบุ หรือห้องไม่ถูกต้อง');
+            console.error('ไม่พบห้องเสียงที่ระบุ หรือช่องทางไม่ถูกต้อง');
             return;
         }
 
@@ -37,16 +50,16 @@ client.once('ready', async () => {
             channelId: channel.id,
             guildId: guild.id,
             adapterCreator: guild.voiceAdapterCreator,
-            selfDeaf: false, // ปรับเป็น true หากต้องการให้บอทปิดหูฟังตัวเอง
-            selfMute: true   // ปรับเป็น true เพื่อปิดไมค์บอทไม่ให้เสียงไมค์เข้าห้อง
+            selfDeaf: false, // เปลี่ยนเป็น true หากต้องการปิดหูฟังบอท
+            selfMute: true   // เปลี่ยนเป็น true เพื่อปิดไมค์บอท
         });
 
         console.log(`บอทได้เชื่อมต่อเข้าสู่ห้องเสียง: ${channel.name} เรียบร้อยแล้ว!`);
 
     } catch (error) {
-        console.error('เกิดข้อผิดพลาดในการเข้าห้องเสียง:', error);
+        console.error('ไม่สามารถเข้าห้องเสียงได้:', error);
     }
 });
 
-// เชื่อมต่อบอทเข้าสู่ระบบ Discord โดยดึง Token จาก Environment Variables บน Render
+// ล็อกอินเข้าสู่ระบบ Discord โดยดึง Token จาก Environment Variable (DISCORD_TOKEN)
 client.login(process.env.DISCORD_TOKEN);
